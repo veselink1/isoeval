@@ -15,8 +15,8 @@
     /**
      * Returns a function, which when called,
      * executes the provided code.
-     * @param {string} code The JavaScript code to evaluate.
      * @param {string[]} args An array containing the names of the arguments of the resulting function.
+     * @param {string} code The JavaScript code to evaluate.
      * @param {Object?} global The global object to use as a template.
      * @returns {Function} A function which when called executes the provided code.
      */
