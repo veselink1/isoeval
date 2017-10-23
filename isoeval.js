@@ -43,7 +43,6 @@
                     "with(arguments[0]) { ",
                         "return function(" + args.join(',') + ") { ",
                             "\"use strict\";",
-                            "typeof __init === 'function' && __init.__isoevalInternal && __init();",
                             code,
                         "}",
                     "}",
