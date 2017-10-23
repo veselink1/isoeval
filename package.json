@@ -1,0 +1,24 @@
+{
+  "name": "isoeval",
+  "version": "1.0.0",
+  "description": "Safely evaluate JavaScript code.",
+  "main": "isoeval.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paladin324/isoeval.git"
+  },
+  "keywords": [
+    "eval",
+    "isolate",
+    "context"
+  ],
+  "author": "paladin324",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/paladin324/isoeval/issues"
+  },
+  "homepage": "https://github.com/paladin324/isoeval#readme"
+}
