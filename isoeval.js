@@ -15,10 +15,10 @@
     /**
      * Returns a function, which when called,
      * executes the provided code.
-     * @param {string} code 
-     * @param {Object} imports 
-     * @param {string} compatibility 
-     * @returns {Function}
+     * @param {string} code The JavaScript code to evaluate.
+     * @param {Object?} imports An object containing the variables which will be imported as globals.
+     * @param {Object?} global The global object to use as a template.
+     * @returns {Function} A function which when called executes the provided code.
      */
     function isoeval(code, imports, global) {
 
@@ -29,7 +29,7 @@
 
         global = global || _global;
 
-        var mockupGlobal = createGlobal(global);
+        var proxyGlobal = createGlobal(global);
 
         var shadowNames = getAllPropertyNames(global)
             .filter(isValidVariableName);
@@ -57,11 +57,11 @@
 
         var fn = (0, eval)(codeToEval)
             .call(null)
-            .call(null, mockupGlobal)
+            .call(null, proxyGlobal)
             .apply(null, importsMap.vals);
 
         return function () {
-            return fn.apply(this != null ? this : mockupGlobal, arguments);
+            return fn.apply(this != null ? this : proxyGlobal, arguments);
         };
     }
 
@@ -78,7 +78,7 @@
             throw new TypeError('Illegal constructor');
         }
 
-        var mockupGlobal = arguments[1];
+        var proxyGlobal = arguments[1];
         var keys = arguments[2];
         var self = this;
 
@@ -92,7 +92,7 @@
                     var params = Array.prototype.slice.call(arguments, 1);
                     var code = arguments[arguments.length - 1];
                     return function () {
-                        var fn = isoeval('(function(' + params.join(',') + ') {' + code + '})', void 0, mockupGlobal);
+                        var fn = isoeval('(function(' + params.join(',') + ') {' + code + '})', void 0, proxyGlobal);
                         return fn().apply(this != null ? this : self, arguments);
                     };
                 };
@@ -104,8 +104,8 @@
                 });
                 return;
             }
-            var _value = mockupGlobal[key];
-            var descriptor = Object.getOwnPropertyDescriptor(mockupGlobal, key);
+            var _value = proxyGlobal[key];
+            var descriptor = Object.getOwnPropertyDescriptor(proxyGlobal, key);
             if (!descriptor) {
                 Object.defineProperty(this, key, {
                     configurable: true,
