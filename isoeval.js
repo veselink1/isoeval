@@ -16,15 +16,18 @@
      * Returns a function, which when called,
      * executes the provided code.
      * @param {string} code The JavaScript code to evaluate.
-     * @param {Object?} imports An object containing the variables which will be imported as globals.
+     * @param {string[]} args An array containing the names of the arguments of the resulting function.
      * @param {Object?} global The global object to use as a template.
      * @returns {Function} A function which when called executes the provided code.
      */
-    function isoeval(code, imports, global) {
+    function isoeval(args, code, global) {
 
-        if (typeof imports !== 'undefined' &&
-            (typeof imports !== 'object' || imports === null)) {
-            throw new TypeError("isoeval(code: string, imports: object): imports cannot be of type \"" + typeof imports + "\"");
+        if (args === null) {
+            args = [];
+        }
+
+        if (!(args instanceof Array)) {
+            args = Array.prototype.slice.call(args);
         }
 
         global = global || _global;
@@ -34,21 +37,14 @@
         var shadowNames = getAllPropertyNames(global)
             .filter(isValidVariableName);
 
-        var importsMap = createImportsMap(imports);
-
         var codeToEval = [
             "(function(" + shadowNames.join(',') + ") { ",
                 "return function() { ",
                     "with(arguments[0]) { ",
-                        "return function(", importsMap.keys.join(','), ") { ",
-                            "return function() { ",
-                                "arguments = void 0;",
-                                "return eval(",
-                                    "\"\\\"use strict\\\";",
-                                    "typeof __init === 'function' && __init.__isoevalInternal && __init();\\nvoid 0;\\n\" + ",
-                                    JSON.stringify(code),
-                                ")",
-                            "}",
+                        "return function(" + args.join(',') + ") { ",
+                            "\"use strict\";",
+                            "typeof __init === 'function' && __init.__isoevalInternal && __init();",
+                            code,
                         "}",
                     "}",
                 "}",
@@ -57,8 +53,7 @@
 
         var fn = (0, eval)(codeToEval)
             .call(null)
-            .call(null, proxyGlobal)
-            .apply(null, importsMap.vals);
+            .call(null, proxyGlobal);
 
         return function () {
             return fn.apply(this != null ? this : proxyGlobal, arguments);
@@ -83,25 +78,7 @@
         var self = this;
 
         var defineKey = (function (key) {
-            if (key === 'self' || key === 'window' || key === 'global') {
-                return;
-            }
-            if (key === 'Function') {
-                var _Function = Function;
-                var patchedFn = function () {
-                    var params = Array.prototype.slice.call(arguments, 1);
-                    var code = arguments[arguments.length - 1];
-                    return function () {
-                        var fn = isoeval('(function(' + params.join(',') + ') {' + code + '})', void 0, proxyGlobal);
-                        return fn().apply(this != null ? this : self, arguments);
-                    };
-                };
-                Object.defineProperty(this, 'Function', {
-                    configurable: true,
-                    enumerable: false,
-                    writable: true,
-                    value: patchedFn
-                });
+            if (key === 'self' || key === 'window' || key === 'global' || key === 'eval' || key === 'Function') {
                 return;
             }
             var _value = proxyGlobal[key];
@@ -154,23 +131,30 @@
             value: this
         });
 
-        var isInit = false;
-        this.__init = (function () {
-            if (isInit) {
-                return;
+        Object.defineProperty(this, 'eval', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: function () {
+                return isoeval(arguments[0])();
             }
-            isInit = true;
-            delete this.__init;
-            Object.defineProperty(this, 'eval', {
-                configurable: true,
-                enumerable: true,
-                writable: true,
-                value: function () {
-                    return isoeval(arguments[0])();
-                }
-            });
-        }).bind(this);
-        this.__init.__isoevalInternal = true;
+        });
+
+        var _Function = Function;
+        var patchedFn = function () {
+            var params = Array.prototype.slice.call(arguments, 1);
+            var code = arguments[arguments.length - 1];
+            return function () {
+                var fn = isoeval('(function(' + params.join(',') + ') {' + code + '})', void 0, proxyGlobal);
+                return fn().apply(this != null ? this : self, arguments);
+            };
+        };
+        Object.defineProperty(this, 'Function', {
+            configurable: true,
+            enumerable: false,
+            writable: true,
+            value: patchedFn
+        });
     }
 
     function createGlobal(global) {
@@ -194,20 +178,6 @@
             }
         }
         return object;
-    }
-
-    function createImportsMap(imports) {
-        var map = { keys: [], vals: [] };
-        if (imports == null) {
-            return map;
-        }
-        for (var key in imports) {
-            if (Object.prototype.hasOwnProperty.call(imports, key)) {
-                map.keys.push(key);
-                map.vals.push(imports[key]);
-            }
-        }
-        return map;
     }
 
     function getAllPropertyNames(obj) {
