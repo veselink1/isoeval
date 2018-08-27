@@ -1,7 +1,11 @@
 # isoeval
+
 Safely evaluate JavaScript code in any environment.
 
-Examples
+Install:
+`npm i -s isoeval`
+
+Examples:
 
 ```javascript
 import isoeval from 'isoeval';
